@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          check-latest: true
+
+      - name: Format Check
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "Unformatted files found:"
+            gofmt -d .
+            exit 1
+          fi
+
+      - name: Go Vet
+        run: go vet ./...
+
+      - name: Unit & Integration Tests (Race Detector)
+        run: go test -race -v ./...
+
+      - name: Coverage Check
+        run: go test -count=1 -coverprofile=coverage.out ./internal/...
+
+      - name: Build Binaries
+        run: make build
